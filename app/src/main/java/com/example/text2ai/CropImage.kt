@@ -3,9 +3,13 @@ package com.example.text2ai
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,13 +26,18 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun CropImage(
     imageBitmap: ImageBitmap,
+    onCropComplete: (ImageBitmap) -> Unit,
+    onCancel: () -> Unit
 ) {
-    var image by remember { mutableStateOf(imageBitmap) }
+    var image by remember {
+        mutableStateOf(imageBitmap)
+    }
 
     var topLeft by remember { mutableStateOf(Offset(400f, 400f)) }
     var topRight by remember { mutableStateOf(Offset(800f, 400f)) }
@@ -38,87 +47,104 @@ fun CropImage(
     var draggingCorner by remember { mutableStateOf<Corner?>(null) }
     var draggingCenter by remember { mutableStateOf(false) }
 
+
+
     BoxWithConstraints(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
     ) {
         Image(
             bitmap = image,
-            contentDescription = "Image Taken",
+            contentDescription = null,
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
-        Canvas(
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectDragGestures(
-                        onDragStart = { offset ->
-                            draggingCorner = when {
-                                offset.isNear(topLeft) -> Corner.TopLeft
-                                offset.isNear(topRight) -> Corner.TopRight
-                                offset.isNear(bottomLeft) -> Corner.BottomLeft
-                                offset.isNear(bottomRight) -> Corner.BottomRight
-                                else -> null
-                            }
-                            draggingCenter = draggingCorner == null && Rect(
-                                topLeft,
-                                bottomRight
-                            ).contains(offset)
-                        },
-                        onDrag = { change, dragAmount ->
-                            change.consume()
-                            when (draggingCorner) {
-                                Corner.TopLeft -> {
-                                    topLeft += dragAmount
-                                    topRight = topRight.copy(y = topLeft.y)
-                                    bottomLeft = bottomLeft.copy(x = topLeft.x)
-                                }
 
-                                Corner.TopRight -> {
-                                    topRight += dragAmount
-                                    topLeft = topLeft.copy(y = topRight.y)
-                                    bottomRight = bottomRight.copy(x = topRight.x)
-                                }
+        Canvas(modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectDragGestures(onDragStart = { offset ->
+                    draggingCorner = when {
+                        offset.isNear(topLeft) -> Corner.TopLeft
+                        offset.isNear(topRight) -> Corner.TopRight
+                        offset.isNear(bottomLeft) -> Corner.BottomLeft
+                        offset.isNear(bottomRight) -> Corner.BottomRight
+                        else -> null
+                    }
 
-                                Corner.BottomLeft -> {
-                                    bottomLeft += dragAmount
-                                    topLeft = topLeft.copy(x = bottomLeft.x)
-                                    bottomRight = bottomRight.copy(y = bottomLeft.y)
-                                }
+                    draggingCenter = draggingCorner == null && Rect(
+                        topLeft, bottomRight
+                    ).contains(offset)
+                }, onDrag = { change, dragAmount ->
+                    change.consume()
 
-                                Corner.BottomRight -> {
-                                    bottomRight += dragAmount
-                                    topRight = topRight.copy(x = bottomRight.x)
-                                    bottomLeft = bottomLeft.copy(y = bottomRight.y)
-                                }
-
-                                null -> {
-                                    topLeft += dragAmount
-                                    topRight += dragAmount
-                                    bottomLeft += dragAmount
-                                    bottomRight += dragAmount
-                                }
-                            }
-                        },
-                        onDragEnd = {
-                            draggingCorner = null
-                            draggingCenter = false
+                    when (draggingCorner) {
+                        Corner.TopLeft -> {
+                            topLeft += dragAmount
+                            topRight = topRight.copy(y = topLeft.y)
+                            bottomLeft = bottomLeft.copy(x = topLeft.x)
                         }
-                    )
-                }
-        ) {
-            val rectSize = Size(width = topRight.x - topLeft.x, height = bottomLeft.y - topLeft.y)
-            drawRect(
-                color = Color.Cyan,
-                topLeft = topLeft,
-                size = rectSize,
-                style = Stroke(width = 4f)
+
+                        Corner.TopRight -> {
+                            topRight += dragAmount
+                            topLeft = topLeft.copy(y = topRight.y)
+                            bottomRight = bottomRight.copy(x = topRight.x)
+                        }
+
+                        Corner.BottomLeft -> {
+                            bottomLeft += dragAmount
+                            topLeft = topLeft.copy(x = bottomLeft.x)
+                            bottomRight = bottomRight.copy(y = bottomLeft.y)
+                        }
+
+                        Corner.BottomRight -> {
+                            bottomRight += dragAmount
+                            topRight = topRight.copy(x = bottomRight.x)
+                            bottomLeft = bottomLeft.copy(y = bottomRight.y)
+                        }
+
+                        null -> if (draggingCenter) {
+                            topLeft += dragAmount
+                            topRight += dragAmount
+                            bottomLeft += dragAmount
+                            bottomRight += dragAmount
+                        }
+                    }
+                }, onDragEnd = {
+                    draggingCorner = null
+                    draggingCenter = false
+                })
+            }) {
+            val rectSize = Size(
+                width = topRight.x - topLeft.x, height = bottomLeft.y - topLeft.y
             )
-            drawCorner(topLeft)
-            drawCorner(topRight)
-            drawCorner(bottomLeft)
-            drawCorner(bottomRight)
+
+            drawRect(
+                color = Color.White, topLeft = topLeft, size = rectSize, style = Stroke(width = 4f)
+            )
+
+            drawHandle(topLeft)
+            drawHandle(topRight)
+            drawHandle(bottomLeft)
+            drawHandle(bottomRight)
+        }
+
+        Button(
+            onClick = {
+                val croppedBitmap = cropBitmap(
+                    imageBitmap,
+                    Rect(topLeft, bottomRight),
+                    canvasWidth = constraints.maxWidth.toFloat(),
+                    canvasHeight = constraints.maxHeight.toFloat()
+                )
+                onCropComplete(croppedBitmap)
+            }, modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        ) {
+            Text(text = "Crop Image")
         }
     }
 }
@@ -131,6 +157,11 @@ fun Offset.isNear(point: Offset, threshold: Float = 50f): Boolean {
     return (this - point).getDistance() <= threshold
 }
 
-fun DrawScope.drawCorner(center: Offset) {
-    drawCircle(color = Color.Cyan, radius = 25f, center = center)
+fun DrawScope.drawHandle(center: Offset) {
+    drawCircle(
+        color = Color.White, radius = 20f, center = center
+    )
+    drawCircle(
+        color = Color.Cyan, radius = 15f, center = center
+    )
 }

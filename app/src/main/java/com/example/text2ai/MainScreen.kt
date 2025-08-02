@@ -1,6 +1,7 @@
 package com.example.text2ai
 
 import android.Manifest
+import android.graphics.Bitmap
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -37,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -61,6 +64,8 @@ fun MainScreen(innerPadding: PaddingValues) {
     val permissionState = rememberPermissionState(Manifest.permission.CAMERA)
     val expanded by remember { mutableStateOf(false) }
     var openCamera by remember { mutableStateOf(false) }
+    var showCropScreen by remember { mutableStateOf(false) }
+    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val focusManager = LocalFocusManager.current
     LaunchedEffect(Unit) {
         if (!permissionState.status.isGranted) {
@@ -164,21 +169,54 @@ fun MainScreen(innerPadding: PaddingValues) {
 
         }
     }
-    if (openCamera) {
+
+    when {
+        openCamera -> {
             CameraPreview(
                 modifier = Modifier.padding(innerPadding),
-                onImageCaptured = { image ->
-                    extractTextFromImage(image) { text ->
-                        if(text.isNotBlank()){
-                            extractedText = text
-                            userInput = text
-                            openCamera = false
-                        }
-                    }
+                onImageCaptured = { bitmap ->
+                    capturedBitmap = bitmap
+                    openCamera = false
+                    showCropScreen = true
                 },
                 onClose = {
                     openCamera = false
                 }
             )
+        }
+
+        showCropScreen && (capturedBitmap != null) -> {
+            CropImage(
+                imageBitmap = capturedBitmap!!.asImageBitmap(),
+                onCropComplete = { croppedImage ->
+                    extractTextFromImage(croppedImage) { text ->
+                        if(text.isNotBlank()) {
+                            extractedText = text
+                            userInput = text
+                        }
+                    }
+                    showCropScreen = false
+                    capturedBitmap = null
+//                    capturedBitmap = croppedImage.asAndroidBitmap()
+                },
+                onCancel = {
+                    showCropScreen = false
+                    capturedBitmap = null
+                }
+            )
+        }
+
+        // To examine the cropped image
+        else ->
+            capturedBitmap?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                )
+            }
     }
+
 }
