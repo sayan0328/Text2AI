@@ -31,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.example.text2ai.ui.theme.ThemeDarkerGray
 
 @Composable
 fun CameraPreview(
@@ -52,7 +53,7 @@ fun CameraPreview(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black),
+                .background(ThemeDarkerGray),
             contentAlignment = Alignment.TopEnd
         ) {
             Image(
@@ -94,8 +95,8 @@ fun CameraPreview(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Black),
-            contentAlignment = Alignment.Center
+                .background(ThemeDarkerGray),
+        contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(R.drawable.shutter_icon),

@@ -1,13 +1,20 @@
 package com.example.text2ai
 
 import android.annotation.SuppressLint
+import android.util.Log
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -26,14 +34,18 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.example.text2ai.ui.theme.ThemeDarkerGray
 
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun CropImage(
+    modifier: Modifier,
     imageBitmap: ImageBitmap,
     onCropComplete: (ImageBitmap) -> Unit,
-    onCancel: () -> Unit
+    onClose: () -> Unit
 ) {
     var image by remember {
         mutableStateOf(imageBitmap)
@@ -50,14 +62,15 @@ fun CropImage(
 
 
     BoxWithConstraints(
-        contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(ThemeDarkerGray)
+            .then(modifier),
+        contentAlignment = Alignment.Center
     ) {
         Image(
             bitmap = image,
-            contentDescription = null,
+            contentDescription = "Captured Image",
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
@@ -131,21 +144,36 @@ fun CropImage(
             drawHandle(bottomRight)
         }
 
-        Button(
-            onClick = {
-                val croppedBitmap = cropBitmap(
-                    imageBitmap,
-                    Rect(topLeft, bottomRight),
-                    canvasWidth = constraints.maxWidth.toFloat(),
-                    canvasHeight = constraints.maxHeight.toFloat()
-                )
-                onCropComplete(croppedBitmap)
-            }, modifier = Modifier
+        Image(
+            painter = painterResource(R.drawable.done_icon),
+            contentDescription = "Shutter Icon",
+            modifier = Modifier
+                .padding(25.dp)
+                .size(70.dp)
+                .clip(RoundedCornerShape(70.dp))
                 .align(Alignment.BottomCenter)
-                .padding(16.dp)
-        ) {
-            Text(text = "Crop Image")
-        }
+                .clickable{
+                    val croppedBitmap = cropBitmap(
+                        imageBitmap,
+                        Rect(topLeft, bottomRight),
+                        canvasWidth = constraints.maxWidth.toFloat(),
+                        canvasHeight = constraints.maxHeight.toFloat()
+                    )
+                    onCropComplete(croppedBitmap)
+                }
+        )
+
+        Image(
+            painter = painterResource(R.drawable.close_icon),
+            contentDescription = "Close Icon",
+            modifier = Modifier
+                .padding(12.dp)
+                .size(16.dp)
+                .align(Alignment.TopEnd)
+                .clickable{
+                    onClose()
+                }
+        )
     }
 }
 

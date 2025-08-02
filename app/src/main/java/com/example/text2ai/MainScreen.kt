@@ -2,8 +2,14 @@ package com.example.text2ai
 
 import android.Manifest
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -48,6 +54,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.text2ai.ui.theme.ThemeBlue
 import com.example.text2ai.ui.theme.ThemeDarkGray
+import com.example.text2ai.ui.theme.ThemeDarkerGray
 import com.example.text2ai.ui.theme.ThemeGray
 import com.example.text2ai.ui.theme.ThemeLightGray
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -67,16 +74,32 @@ fun MainScreen(innerPadding: PaddingValues) {
     var showCropScreen by remember { mutableStateOf(false) }
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     val focusManager = LocalFocusManager.current
+
     LaunchedEffect(Unit) {
         if (!permissionState.status.isGranted) {
             permissionState.launchPermissionRequest()
         }
     }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            try {
+                val inputStream = uri?.let { context.contentResolver.openInputStream(it) }
+                capturedBitmap = BitmapFactory.decodeStream(inputStream)
+                openCamera = false
+                showCropScreen = true
+            } catch (e: Exception) {
+                Log.e("MainScreen", "Error picking image", e)
+            }
+        }
+    )
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(innerPadding)
-            .background(Color.Black)
+            .background(ThemeDarkerGray)
             .padding(16.dp)
             .clickable(
                 indication = null,
@@ -101,24 +124,27 @@ fun MainScreen(innerPadding: PaddingValues) {
                 )
             }
 
-//            A feature for the future
+            HorizontalDivider(
+                thickness = 2.dp,
+                color = ThemeGray,
+                modifier = Modifier.padding(start = 64.dp, end = 64.dp, bottom = 12.dp)
+            )
+            Button(
+                onClick = {
+                    imagePickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
 
-//            HorizontalDivider(
-//                thickness = 2.dp,
-//                color = ThemeGray,
-//                modifier = Modifier.padding(start = 64.dp, end = 64.dp, bottom = 12.dp)
-//            )
-//            Button(
-//                onClick = { openCamera = true },
-//                modifier = Modifier.padding(bottom = 8.dp),
-//                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
-//            ) {
-//                Image(
-//                    painter = painterResource(R.drawable.gallery_icon),
-//                    contentDescription = "Gallery Icon",
-//                    modifier = Modifier.size(96.dp)
-//                )
-//            }
+                },
+                modifier = Modifier.padding(bottom = 8.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.gallery_icon),
+                    contentDescription = "Gallery Icon",
+                    modifier = Modifier.size(96.dp)
+                )
+            }
             Spacer(modifier = Modifier.height(120.dp))
             Text(
                 text = "Extracted Text:",
@@ -157,9 +183,12 @@ fun MainScreen(innerPadding: PaddingValues) {
                 },
                 modifier = Modifier
                     .padding(top = 12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = ThemeBlue, contentColor = Color.Black)
+                colors = ButtonDefaults.buttonColors(containerColor = ThemeBlue)
             ) {
-                Text("Send to AI")
+                Text(
+                    text = "Send to AI",
+                    color = ThemeDarkerGray
+                )
             }
                 Text(
                     text = aiResponse,
@@ -187,19 +216,22 @@ fun MainScreen(innerPadding: PaddingValues) {
 
         showCropScreen && (capturedBitmap != null) -> {
             CropImage(
+                modifier = Modifier.padding(innerPadding),
                 imageBitmap = capturedBitmap!!.asImageBitmap(),
                 onCropComplete = { croppedImage ->
                     extractTextFromImage(croppedImage) { text ->
                         if(text.isNotBlank()) {
                             extractedText = text
                             userInput = text
+                        } else {
+                            Toast.makeText(context, "No text found", Toast.LENGTH_SHORT).show()
                         }
                     }
                     showCropScreen = false
                     capturedBitmap = null
 //                    capturedBitmap = croppedImage.asAndroidBitmap()
                 },
-                onCancel = {
+                onClose = {
                     showCropScreen = false
                     capturedBitmap = null
                 }
