@@ -20,7 +20,14 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
--keep class com.example.text2ai.GeminiResponse.*
+-keep class com.example.text2ai.GeminiResponse { *; }
+-keep class com.example.text2ai.Candidate { *; }
+-keep class com.example.text2ai.Content { *; }
+-keep class com.example.text2ai.Part { *; }
+
+-keep class com.google.gson.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*
 
 -dontwarn org.bouncycastle.jsse.BCSSLParameters
 -dontwarn org.bouncycastle.jsse.BCSSLSocket

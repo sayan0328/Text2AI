@@ -2,7 +2,6 @@ package com.example.text2ai
 
 import android.util.Log
 import com.google.gson.Gson
-import com.example.text2ai.BuildConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
